@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es-MX">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#f7f7f2" />
+    <meta
+      name="description"
+      content="Mesa de control de BOMBATRONIK: plan semanal, hitos, canciones y bitácora del relanzamiento."
+    />
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="BTK Estudio" />
+    <title>BOMBATRONIK — Mesa de control</title>
+    <link rel="icon" href="./assets/icon-192.png" />
+    <link rel="apple-touch-icon" href="./assets/apple-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link
+      rel="preload"
+      href="./assets/fonts/space.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="./studio.css" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Saltar al contenido</a>
+    <div class="workspace">
+      <aside
+        class="sidebar"
+        id="sidebar"
+        aria-label="Navegación del estudio"
+      ></aside>
+      <div class="stage">
+        <header id="topbar" class="topbar"></header>
+        <main id="main" tabindex="-1">
+          <div id="storage-notice"></div>
+          <div id="screen" class="screen">
+            <h1>Mesa de control</h1>
+            <p>Abriendo tu estudio…</p>
+          </div>
+        </main>
+        <footer class="desk-foot">
+          <span>BOMBATRONIK <b>/</b> ESTUDIO OPERATIVO</span
+          ><span>BOG <i>⇄</i> CDMX</span>
+        </footer>
+      </div>
+    </div>
+    <nav
+      id="mobile-nav"
+      class="mobile-nav"
+      aria-label="Navegación principal móvil"
+    ></nav>
+    <dialog id="sheet" aria-labelledby="sheet-title"></dialog>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <input
+      type="file"
+      id="import-file"
+      accept="application/json,.json"
+      hidden
+    /><noscript
+      >Activa JavaScript para registrar avances en el estudio.</noscript
+    >
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

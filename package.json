@@ -1,0 +1,13 @@
+{
+  "name": "bombatronik-estudio",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node preparar.mjs",
+    "test": "node --test pruebas/*.test.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}
