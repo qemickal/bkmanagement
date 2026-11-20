@@ -37,6 +37,19 @@ El estudio funciona con un proyecto de **Supabase** (plan gratuito suficiente). 
 
    En Vercel van en *Settings → Environment Variables*, y hacen falta las dos para que el despliegue funcione.
 
+### Desplegar en Vercel
+
+Desde tu terminal, sin guardar secretos en ningún otro lado:
+
+```sh
+export VERCEL_TOKEN=...        # vercel.com/account/tokens
+export SUPABASE_URL=https://TU-PROYECTO.supabase.co
+export SUPABASE_ANON_KEY=eyJ...
+./despliegue/desplegar-vercel.sh
+```
+
+Enlaza el proyecto, carga las dos variables en producción y preview, despliega a producción e imprime la URL. Revoca el token cuando termines. Alternativa sin token: importa el repositorio en [vercel.com/new](https://vercel.com/new) y pega las variables en *Settings → Environment Variables*; `vercel.json` ya define build, salida y headers. Para despliegue automático en cada push, la plantilla `despliegue/vercel-actions.yml` se copia a `.github/workflows/` y usa un secreto del repositorio.
+
 La llave `anon` es pública a propósito: no da acceso a nada por sí sola, porque las políticas RLS devuelven cero filas sin sesión. Lo que protege el plan es la combinación **RLS + tabla de miembros**, no el secreto de esa llave.
 
 ### Qué se guarda dónde
