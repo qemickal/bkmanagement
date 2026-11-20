@@ -1,3 +1,7 @@
 node_modules/
 dist/
 .vercel/
+
+# Fuente y artefactos privados del catálogo: nunca se publican ni se despliegan.
+supabase/fuente.js
+supabase/privado/

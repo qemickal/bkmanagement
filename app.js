@@ -1,4 +1,4 @@
-import { PROJECT, WEEKS, STAGES } from "./seed.js";
+import { PROJECT, WEEKS, STAGES, aplicarCatalogo } from "./seed.js";
 import {
   today,
   checkBackup,
@@ -9,6 +9,7 @@ import {
   isDate,
 } from "./model.js";
 import * as store from "./store.js";
+import * as auth from "./auth.js";
 import { I } from "./icons.js";
 import {
   shell,
@@ -37,6 +38,7 @@ let s = derive([]),
 const u = {
   route: getRoute(),
   author: "Personal",
+  correo: "",
   week: currentWeek(),
   taskFilter: "all",
   hitoFilter: "all",
@@ -338,6 +340,18 @@ async function handleSubmit(form) {
   }
 }
 async function act(a, id, el) {
+  if (a === "retry") {
+    el.disabled = true;
+    location.reload();
+    return;
+  }
+  if (a === "logout") {
+    el.disabled = true;
+    await store.catalogoBorrar();
+    auth.salir();
+    location.reload();
+    return;
+  }
   if (a === "close") {
     guard(closeSheet);
     return;
@@ -560,6 +574,10 @@ document.addEventListener("click", (e) => {
 document.addEventListener("submit", (e) => {
   if (!e.target.matches("form")) return;
   e.preventDefault();
+  if (e.target.id === "form-login") {
+    entrarCon(e.target).catch(fail);
+    return;
+  }
   handleSubmit(e.target).catch(fail);
 });
 document.addEventListener("change", (e) => {
@@ -707,9 +725,101 @@ async function setupPWA() {
   )
     render();
 }
-async function main() {
-  await store.openStore();
+// Puerta de acceso ---------------------------------------------------------
+// El plan no se dibuja hasta tener sesión y catálogo. Así el HTML publicado no
+// revela el calendario, los hitos ni los títulos del disco.
+function pantallaPuerta(html) {
+  document.body.classList.add("puerta");
+  for (const sel of ["#sidebar", "#topbar", "#mobile-nav"])
+    $(sel).innerHTML = "";
+  $("#storage-notice").innerHTML = "";
+  const scr = $("#screen");
+  scr.className = "screen gate-screen";
+  scr.innerHTML = html;
+  document.title = "Acceso · BOMBATRONIK";
+}
+function pantallaLogin(aviso = "") {
+  pantallaPuerta(
+    `<div class="gate-card card"><span class="eyebrow"><i class="dash"></i>Acceso privado</span><h1>Estudio operativo</h1><p class="standard-para">Entra con tu cuenta para cargar el plan del relanzamiento. El calendario, los hitos y los títulos del disco se descargan después de iniciar sesión; sin sesión no hay copia que mostrar.</p>${
+      aviso ? `<div class="notice" role="status"><b>${esc(aviso)}</b></div>` : ""
+    }<form id="form-login" class="fields" novalidate><label class="field"><span>Correo</span><input class="input" type="email" name="email" required autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="tu@correo.com"></label><label class="field"><span>Contraseña</span><input class="input" type="password" name="password" required autocomplete="current-password"></label><div class="form-error" id="login-error" role="alert" hidden></div><div class="gate-actions"><button class="btn primary" type="submit">Entrar</button></div></form><p class="helper">La cuenta la crea quien administra el proyecto en Supabase. La sesión queda guardada en este navegador: ciérrala desde Ajustes y respaldo si el equipo es compartido.</p></div>`,
+  );
+  setTimeout(() => $("#form-login input[name=email]")?.focus(), 60);
+}
+function pantallaConfig() {
+  pantallaPuerta(
+    `<div class="gate-card card"><span class="eyebrow"><i class="dash"></i>Configuración pendiente</span><h1>Falta conectar el servidor</h1><p class="standard-para">Este paquete se compiló sin <code>SUPABASE_URL</code> ni <code>SUPABASE_ANON_KEY</code>. Sin esas dos variables no se puede pedir el plan, y no existe una copia local del calendario por diseño.</p><div class="section-stack"><p><b>En Vercel</b><br>Settings → Environment Variables: agrega las dos y vuelve a desplegar.</p><p><b>En tu computadora</b><br><code>SUPABASE_URL=… SUPABASE_ANON_KEY=… npm run build</code></p><p><b>Primera vez</b><br>Ejecuta <code>supabase/esquema.sql</code> y <code>supabase/privado/catalogo.sql</code> en el editor SQL de Supabase, y crea tu cuenta en Authentication → Users.</p></div><p class="helper">Consulta LEEME.md → «Acceso y servidor» para la lista completa.</p></div>`,
+  );
+}
+function pantallaError(mensaje) {
+  pantallaPuerta(
+    `<div class="gate-card card"><span class="eyebrow"><i class="dash"></i>Sin acceso</span><h1>No se pudo cargar el plan</h1><p class="standard-para">${esc(
+      mensaje,
+    )}</p><div class="gate-actions">${button("retry", "Reintentar", "", "secondary small")}${button("logout", "Usar otra cuenta", "", "secondary small")}</div></div>`,
+  );
+}
+async function cargarPlan() {
+  let error = null,
+    payload = null;
+  try {
+    payload = await auth.bajarCatalogo(PROJECT);
+    await store.catalogoGuardar(payload);
+  } catch (e) {
+    error = e;
+    if (e?.codigo !== auth.SIN_CONEXION) throw e;
+    payload = await store.catalogoCache();
+    if (!payload) throw e;
+  }
+  aplicarCatalogo(payload);
+  u.correo = auth.sesion()?.correo || "";
+  if (error) toast("Sin conexión: uso la última copia autorizada del plan.");
+}
+async function entrarCon(form) {
+  const boton = form.querySelector("[type=submit]"),
+    caja = $("#login-error");
+  let error = null;
+  if (caja) {
+    caja.hidden = true;
+    caja.textContent = "";
+  }
+  if (boton) {
+    boton.disabled = true;
+    boton.textContent = "Entrando…";
+  }
+  try {
+    const campo = (n) => form.querySelector(`[name=${n}]`).value;
+    await auth.entrar(campo("email"), campo("password"));
+    await cargarPlan();
+    await iniciarTablero();
+    toast("Sesión iniciada. Plan cargado desde el servidor.");
+  } catch (e) {
+    error = e;
+  } finally {
+    if (boton?.isConnected) {
+      boton.disabled = false;
+      boton.textContent = "Entrar";
+    }
+  }
+  if (!error) return;
+  if (error.codigo === auth.SIN_SESION) return pantallaLogin("Tu sesión terminó.");
+  if (error.codigo === "sin-acceso" || error.codigo === "servidor")
+    return pantallaError(error.message);
+  if (caja?.isConnected) {
+    caja.textContent = error.message || "No se pudo entrar.";
+    caja.hidden = false;
+    caja.scrollIntoView({ block: "nearest" });
+  } else fail(error);
+}
+function abrirTablero() {
+  document.body.classList.remove("puerta");
+  $("#screen").className = "screen";
+  u.week = currentWeek();
+  render();
+}
+async function iniciarTablero() {
+  abrirTablero();
   await refresh();
+  if (initDone) return;
   initDone = true;
   store.listen(() => refresh().catch(fail));
   window.addEventListener("pageshow", (e) => {
@@ -719,12 +829,27 @@ async function main() {
     if (
       !document.hidden &&
       initDone &&
-      !sheet.open &&
       !document.querySelector("#form-author input:focus")
     )
       refresh().catch(fail);
   });
   setupPWA();
+}
+async function main() {
+  await store.openStore();
+  if (!auth.configurado()) return pantallaConfig();
+  if (!(await auth.sesionActiva())) return pantallaLogin();
+  try {
+    await cargarPlan();
+  } catch (e) {
+    if (e?.codigo === auth.SIN_SESION) return pantallaLogin("Tu sesión terminó.");
+    return pantallaError(
+      e?.codigo === auth.SIN_CONEXION
+        ? "No hay conexión y todavía no existe una copia del plan en este dispositivo. Abre el estudio una vez con internet."
+        : e?.message || "El servidor no respondió.",
+    );
+  }
+  await iniciarTablero();
 }
 main().catch((err) => {
   $("#screen").innerHTML =

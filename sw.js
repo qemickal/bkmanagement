@@ -1,5 +1,5 @@
 // Autogenerado por preparar.mjs. Nunca almacena los datos personales en Cache Storage.
-const BASE=self.registration.scope,PREFIX='btk-shell-'+new URL(BASE).pathname+'-',CACHE=PREFIX+'03eb0dc0fcdc38';
+const BASE=self.registration.scope,PREFIX='btk-shell-'+new URL(BASE).pathname+'-',CACHE=PREFIX+'4791ac35bf1ce2';
 const ASSETS=["index.html","manifest.webmanifest","assets/icon-192.png","assets/icon-512.png","assets/maskable-512.png","assets/apple-icon.png"].map(p=>new URL(p,BASE).href),HOME=new URL('index.html',BASE).href;
 self.addEventListener('install',e=>e.waitUntil((async()=>{const c=await caches.open(CACHE);await c.addAll(ASSETS.map(url=>new Request(url,{cache:'reload',credentials:'same-origin'})));await self.skipWaiting()})()));
 self.addEventListener('activate',e=>e.waitUntil((async()=>{for(const k of await caches.keys())if(k.startsWith(PREFIX)&&k!==CACHE)await caches.delete(k);await self.clients.claim()})()));

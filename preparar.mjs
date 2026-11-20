@@ -7,6 +7,11 @@ import path from "node:path";
 const home = path.dirname(fileURLToPath(import.meta.url));
 const read = (n) => readFileSync(path.join(home, n));
 const uri = (n, t) => `data:${t};base64,${read(n).toString("base64")}`;
+// El catálogo del charter ya no viaja en el paquete: la app lo pide a Supabase
+// con una sesión válida. Estas dos variables son públicas por diseño (la llave
+// anon no autoriza nada por sí sola; las políticas RLS del servidor sí).
+const SUPABASE_URL = (process.env.SUPABASE_URL || "").trim().replace(/\/+$/, "");
+const SUPABASE_ANON_KEY = (process.env.SUPABASE_ANON_KEY || "").trim();
 const bundle = await build({
   absWorkingDir: home,
   entryPoints: ["app.js"],
@@ -17,6 +22,10 @@ const bundle = await build({
   target: "es2021",
   charset: "utf8",
   legalComments: "none",
+  define: {
+    __SUPABASE_URL__: JSON.stringify(SUPABASE_URL),
+    __SUPABASE_ANON_KEY__: JSON.stringify(SUPABASE_ANON_KEY),
+  },
 });
 const js = bundle.outputFiles[0].text
   .replaceAll("./assets/vinilo.webp", uri("assets/vinilo.webp", "image/webp"))
@@ -61,6 +70,10 @@ self.addEventListener('activate',e=>e.waitUntil((async()=>{for(const k of await 
 self.addEventListener('fetch',e=>{const r=e.request;if(r.method!=='GET'||new URL(r.url).origin!==self.location.origin)return;const u=new URL(r.url);if(r.mode==='navigate'&&[new URL(BASE).pathname,new URL(HOME).pathname].includes(u.pathname)){e.respondWith(caches.open(CACHE).then(async c=>(await c.match(HOME))||fetch(r)));return}if(ASSETS.includes(u.href)){e.respondWith(caches.open(CACHE).then(async c=>(await c.match(r))||fetch(r)))}});
 `,
 );
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY)
+  console.warn(
+    "Aviso: falta SUPABASE_URL o SUPABASE_ANON_KEY. El sitio compilará, pero sólo mostrará la pantalla de configuración.",
+  );
 console.log(
   `Estudio listo · ${Math.round(Buffer.byteLength(html) / 1024)} KB · caché ${v}`,
 );

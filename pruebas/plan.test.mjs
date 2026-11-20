@@ -10,7 +10,9 @@ import {
   TRACKS,
   MILESTONES,
   STAGES,
+  aplicarCatalogo,
 } from "../seed.js";
+import { catalogo } from "./catalogo-ficticio.mjs";
 import {
   derive,
   backup,
@@ -22,6 +24,10 @@ import {
   effectiveWeek,
   today,
 } from "../model.js";
+// Las pruebas trabajan con un catálogo ficticio: el plan real se sirve desde
+// Postgres y no forma parte de este paquete.
+aplicarCatalogo(catalogo);
+
 const ev = (clock, kind, entity, data) => ({
   id: randomUUID(),
   clock,
@@ -31,22 +37,34 @@ const ev = (clock, kind, entity, data) => ({
   entity,
   data,
 });
-test("90 días, pausa protegida, fechas explícitas y vínculos válidos", () => {
+test("el catálogo se aplica, valida su forma y respeta el sprint de 90 días", () => {
   const s = derive([]);
   assert.equal((Date.parse(END) - Date.parse(START)) / 86400000 + 1, 90);
   assert.equal(WEEKS.length, 13);
-  assert.equal(TASKS.length, 52);
-  assert.equal(MILESTONES.length, 22);
-  assert.equal(TRACKS.length, 14);
-  assert.equal(TRACKS[0].title, "Contradicción");
-  assert.equal(TRACKS[13].title, "Lo Mejor");
+  assert.equal(TASKS.length, 2);
+  assert.equal(MILESTONES.length, 4);
+  assert.equal(TRACKS.length, 2);
+  assert.equal(TRACKS[0].title, "Pista Uno");
+  assert.equal(TRACKS[1].title, "Pista Dos");
   for (const t of s.tasks.values()) {
-    assert.ok(![6, 7].includes(t.week));
     if (t.h) assert.ok(s.hitos.has(t.h));
     assert.equal(effectiveWeek(t, s), t.week);
   }
   assert.equal(s.hitos.get("h-lp90").original, "2027-09-02");
   assert.equal(s.hitos.get("h-sprint90").original, END);
+});
+test("un catálogo de otro proyecto o incompleto se rechaza", () => {
+  assert.throws(
+    () => aplicarCatalogo({ ...catalogo, proyecto: "otro-proyecto" }),
+    /otro proyecto/,
+  );
+  assert.throws(
+    () => aplicarCatalogo({ ...catalogo, tareas: [] }),
+    /incompleto/,
+  );
+  assert.throws(() => aplicarCatalogo(null), /formato desconocido/);
+  // El catálogo válido sigue en pie después de los rechazos.
+  assert.ok(TASKS.length === 2 && WEEKS.length === 13);
 });
 test("entrega, estreno y calendario original son independientes", () => {
   const e = ev(1, "hito.set", "h-entrega1", {
