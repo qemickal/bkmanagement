@@ -1,0 +1,41 @@
+name: Deploy a Vercel
+
+# Despliega a producción en cada push a main, sin exponer el token en el chat:
+# el token vive como secreto del repositorio (Settings → Secrets and variables → Actions).
+#
+# Secretos necesarios:
+#   VERCEL_TOKEN  (obligatorio) · vercel.com/account/tokens
+#   VERCEL_ORG_ID y VERCEL_PROJECT_ID (opcionales). Si faltan, la CLI crea o usa
+#   el proyecto llamado "bkmanagement" en la cuenta dueña del token.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar
+        run: npm ci
+
+      - name: Probar
+        run: npm test
+
+      - name: Desplegar
+        run: npx --yes vercel@latest deploy --prod --yes

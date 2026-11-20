@@ -2265,3 +2265,64 @@ body:has(#sheet[open]) {
     min-height: 40px;
   }
 }
+
+/* Acceso ---------------------------------------------------------------
+   Sin sesión no hay tablero: el plan se descarga después de entrar. */
+body.puerta .sidebar,
+body.puerta .topbar,
+body.puerta .mobile-nav,
+body.puerta .desk-foot {
+  display: none;
+}
+body.puerta .workspace {
+  grid-template-columns: minmax(0, 1fr);
+}
+body.puerta .stage {
+  min-height: 100vh;
+  justify-content: center;
+}
+body.puerta #main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+}
+.gate-screen {
+  max-width: 520px;
+  padding: 0;
+}
+.gate-card {
+  width: 100%;
+  padding: clamp(24px, 4vw, 38px);
+  display: grid;
+  gap: 14px;
+}
+.gate-card h1 {
+  font: 600 clamp(24px, 4vw, 30px) / 1.1 var(--display);
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+.gate-card .helper,
+.gate-card code {
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.gate-card code {
+  background: var(--side);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+.gate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.gate-actions .btn {
+  justify-content: center;
+}
+#form-login .btn {
+  width: 100%;
+  min-height: 44px;
+}

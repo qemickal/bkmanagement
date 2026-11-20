@@ -3,7 +3,8 @@ import { uid, validEvent, checkBackup, byEvent } from "./model.js";
 let db = null,
   volatile = [],
   memClock = 0,
-  memAuthor = "Personal";
+  memAuthor = "Personal",
+  memCatalogo = null;
 export let durable = false;
 export const getDurable = () => durable;
 let channel;
@@ -64,6 +65,35 @@ export async function readState() {
     request(tx.objectStore("meta").get("author")),
   ]);
   return { events: events.sort(byEvent), author: author || "Personal" };
+}
+// Catálogo del proyecto. Se guarda la última copia autorizada para poder abrir
+// el estudio sin conexión: es lo mismo que ya se descargó con una sesión válida,
+// no una fuente alternativa de datos.
+export async function catalogoGuardar(payload) {
+  memCatalogo = payload;
+  if (!durable) return;
+  const t = db.transaction("meta", "readwrite"),
+    finished = done(t);
+  t.objectStore("meta").put(payload, "catalogo");
+  await finished;
+}
+export async function catalogoCache() {
+  if (!durable) return memCatalogo;
+  try {
+    const tx = db.transaction("meta", "readonly");
+    const guardado = await request(tx.objectStore("meta").get("catalogo"));
+    return guardado || memCatalogo;
+  } catch {
+    return memCatalogo;
+  }
+}
+export async function catalogoBorrar() {
+  memCatalogo = null;
+  if (!durable) return;
+  const t = db.transaction("meta", "readwrite"),
+    finished = done(t);
+  t.objectStore("meta").delete("catalogo");
+  await finished;
 }
 export async function authorSet(name) {
   const a = name.trim();
